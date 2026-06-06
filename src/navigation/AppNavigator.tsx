@@ -9,7 +9,13 @@ const Stack = createNativeStackNavigator();
 export default function AppNavigator() {
   return (
     <NavigationContainer>
-      <Stack.Navigator initialRouteName="Input">
+      <Stack.Navigator
+        initialRouteName="Input"
+        screenOptions={{
+          headerShown: false,
+          contentStyle: { backgroundColor: '#000000' },
+        }}
+      >
         <Stack.Screen name="Input" component={InputScreen} />
         <Stack.Screen name="Results" component={ResultsScreen} />
       </Stack.Navigator>
