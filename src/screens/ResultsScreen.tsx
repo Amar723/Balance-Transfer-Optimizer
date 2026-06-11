@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -6,31 +6,45 @@ import {
   StyleSheet,
   TouchableOpacity,
   ActivityIndicator,
+  Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { theme } from '../theme';
 import { offers } from '../data/balanceTransferOffers';
 import { calculateSavings, SavingsResult } from '../utils/CalculateSavings';
+import SavingsChart from '../components/SavingsChart';
 
 export default function ResultsScreen({ route, navigation }: any) {
-  const { debtAmount, interestRate } = route.params;
+  const { debtAmount, interestRate, currentCard } = route.params;
   const [results, setResults] = useState<SavingsResult[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     // Simulate brief loading for UX
     setTimeout(() => {
-      const calculated = calculateSavings(debtAmount, interestRate, offers);
+      const calculated = calculateSavings(
+        debtAmount,
+        interestRate,
+        offers,
+        currentCard,
+      );
       setResults(calculated);
       setLoading(false);
     }, 800);
-  }, []);
+  }, [debtAmount, interestRate, currentCard]);
 
   const formatCurrency = (amount: number) =>
     `$${Math.abs(amount).toLocaleString('en-AU', {
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
     })}`;
+
+  const handleApply = useCallback((url: string) => {
+    Linking.openURL(url).catch(() => {
+      // Silently ignore — opening external URLs can fail on simulators
+      // without browsers and we don't want to crash the results flow.
+    });
+  }, []);
 
   const renderCard = ({
     item,
@@ -91,7 +105,12 @@ export default function ResultsScreen({ route, navigation }: any) {
         </Text>
       </View>
 
-      <TouchableOpacity style={styles.applyButton}>
+      <TouchableOpacity
+        style={styles.applyButton}
+        onPress={() => handleApply(item.offer.applyUrl)}
+        accessibilityRole="link"
+        accessibilityLabel={`Apply for ${item.offer.bank} ${item.offer.cardName}`}
+      >
         <Text style={styles.applyButtonText}>Apply now →</Text>
       </TouchableOpacity>
     </View>
@@ -102,6 +121,34 @@ export default function ResultsScreen({ route, navigation }: any) {
       <SafeAreaView style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={theme.colors.primary} />
         <Text style={styles.loadingText}>Finding your best offers...</Text>
+      </SafeAreaView>
+    );
+  }
+
+  if (results.length === 0) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.emptyState}>
+          <TouchableOpacity
+            onPress={() => navigation.goBack()}
+            style={styles.backButton}
+          >
+            <Text style={styles.backText}>← Back</Text>
+          </TouchableOpacity>
+          <Text style={styles.title}>No eligible offers</Text>
+          <Text style={styles.emptyText}>
+            We couldn't match your balance to any of the offers we track.
+            Try adjusting your debt amount and search again.
+          </Text>
+          <TouchableOpacity
+            style={styles.emptyButton}
+            onPress={() => navigation.goBack()}
+            accessibilityRole="button"
+            accessibilityLabel="Adjust your details"
+          >
+            <Text style={styles.emptyButtonText}>Adjust details</Text>
+          </TouchableOpacity>
+        </View>
       </SafeAreaView>
     );
   }
@@ -132,6 +179,14 @@ export default function ResultsScreen({ route, navigation }: any) {
                 based on {formatCurrency(debtAmount)} at {interestRate}% p.a.
               </Text>
             </View>
+
+            {results[0] && (
+              <SavingsChart
+                debtAmount={debtAmount}
+                interestRate={interestRate}
+                result={results[0]}
+              />
+            )}
           </View>
         }
         contentContainerStyle={styles.listContent}
@@ -155,6 +210,30 @@ const styles = StyleSheet.create({
     marginTop: theme.spacing.md,
     fontSize: theme.typography.sizes.md,
     color: theme.colors.textSecondary,
+  },
+  emptyState: {
+    flex: 1,
+    padding: theme.spacing.lg,
+  },
+  emptyText: {
+    fontSize: theme.typography.sizes.md,
+    color: theme.colors.textSecondary,
+    lineHeight: 22,
+    marginBottom: theme.spacing.lg,
+  },
+  emptyButton: {
+    backgroundColor: theme.colors.primary,
+    borderRadius: theme.borderRadius.full,
+    height: 52,
+    alignItems: 'center',
+    justifyContent: 'center',
+    alignSelf: 'flex-start',
+    paddingHorizontal: theme.spacing.xl,
+  },
+  emptyButtonText: {
+    fontSize: theme.typography.sizes.md,
+    fontWeight: theme.typography.weights.bold,
+    color: '#FFFFFF',
   },
   listContent: {
     padding: theme.spacing.lg,
