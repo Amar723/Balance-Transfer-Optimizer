@@ -5,4 +5,5 @@ export type RootStackParamList = {
     interestRate: number;
     currentCard?: string;
   };
+  Learn: undefined;
 };
