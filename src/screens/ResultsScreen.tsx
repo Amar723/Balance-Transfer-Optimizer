@@ -1,8 +1,9 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   View,
   Text,
   FlatList,
+  ScrollView,
   StyleSheet,
   TouchableOpacity,
   ActivityIndicator,
@@ -12,6 +13,15 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { theme } from '../theme';
 import { offers } from '../data/balanceTransferOffers';
 import { calculateSavings, SavingsResult } from '../utils/CalculateSavings';
+import {
+  applySortAndFilter,
+  FILTER_OPTIONS,
+  FilterOption,
+  getFilterLabel,
+  getSortLabel,
+  SORT_OPTIONS,
+  SortOption,
+} from '../utils/sortAndFilterOffers';
 import BankLogo from '../components/BankLogo';
 import SavingsChart from '../components/SavingsChart';
 
@@ -19,6 +29,21 @@ export default function ResultsScreen({ route, navigation }: any) {
   const { debtAmount, interestRate, currentCard } = route.params;
   const [results, setResults] = useState<SavingsResult[]>([]);
   const [loading, setLoading] = useState(true);
+  const [sort, setSort] = useState<SortOption>('best_savings');
+  const [filters, setFilters] = useState<FilterOption[]>([]);
+
+  const displayedResults = useMemo(
+    () => applySortAndFilter(results, sort, filters),
+    [results, sort, filters],
+  );
+
+  const toggleFilter = useCallback((filter: FilterOption) => {
+    setFilters((prev) =>
+      prev.includes(filter)
+        ? prev.filter((f) => f !== filter)
+        : [...prev, filter],
+    );
+  }, []);
 
   useEffect(() => {
     // Simulate brief loading for UX
@@ -53,7 +78,12 @@ export default function ResultsScreen({ route, navigation }: any) {
   }: {
     item: SavingsResult;
     index: number;
-  }) => (
+  }) => {
+    const revertRate = item.offer.revertRate;
+    const revertHigherThanCurrent =
+      revertRate != null && revertRate > interestRate;
+
+    return (
     <View style={[styles.card, index === 0 && styles.topCard]}>
       {index === 0 && (
         <View style={styles.bestBadge}>
@@ -109,6 +139,26 @@ export default function ResultsScreen({ route, navigation }: any) {
         </Text>
       </View>
 
+      {revertRate != null && (
+        <View
+          style={[
+            styles.revertHint,
+            revertHigherThanCurrent && styles.revertHintCaution,
+          ]}
+        >
+          <Text
+            style={[
+              styles.revertHintText,
+              revertHigherThanCurrent && styles.revertHintTextCaution,
+            ]}
+          >
+            {revertHigherThanCurrent
+              ? `Heads up: any balance left after ${item.offer.interestFreeMonths} months reverts to ${revertRate}% p.a. — higher than your current ${interestRate}%.`
+              : `If you don't clear the balance in ${item.offer.interestFreeMonths} months, the revert rate is ${revertRate}% p.a.`}
+          </Text>
+        </View>
+      )}
+
       <TouchableOpacity
         style={styles.applyButton}
         onPress={() => handleApply(item.offer.applyUrl)}
@@ -119,6 +169,7 @@ export default function ResultsScreen({ route, navigation }: any) {
       </TouchableOpacity>
     </View>
   );
+  };
 
   if (loading) {
     return (
@@ -162,7 +213,7 @@ export default function ResultsScreen({ route, navigation }: any) {
   return (
     <SafeAreaView style={styles.container}>
       <FlatList
-        data={results}
+        data={displayedResults}
         keyExtractor={item => item.offer.id}
         renderItem={renderCard}
         ListHeaderComponent={
@@ -191,7 +242,73 @@ export default function ResultsScreen({ route, navigation }: any) {
                 result={results[0]}
               />
             )}
+
+            <Text style={styles.chipGroupLabel}>Sort by</Text>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.chipRow}
+            >
+              {SORT_OPTIONS.map(option => {
+                const active = sort === option;
+                return (
+                  <TouchableOpacity
+                    key={option}
+                    onPress={() => setSort(option)}
+                    style={[styles.chip, active && styles.chipActive]}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: active }}
+                    accessibilityLabel={`Sort by ${getSortLabel(option)}`}
+                  >
+                    <Text
+                      style={[
+                        styles.chipText,
+                        active && styles.chipTextActive,
+                      ]}
+                    >
+                      {getSortLabel(option)}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+
+            <Text style={styles.chipGroupLabel}>Filter</Text>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.chipRow}
+            >
+              {FILTER_OPTIONS.map(option => {
+                const active = filters.includes(option);
+                return (
+                  <TouchableOpacity
+                    key={option}
+                    onPress={() => toggleFilter(option)}
+                    style={[styles.chip, active && styles.chipActive]}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: active }}
+                    accessibilityLabel={`Filter by ${getFilterLabel(option)}`}
+                  >
+                    <Text
+                      style={[
+                        styles.chipText,
+                        active && styles.chipTextActive,
+                      ]}
+                    >
+                      {getFilterLabel(option)}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
           </View>
+        }
+        ListEmptyComponent={
+          <Text style={styles.noFilterMatch}>
+            No offers match your current filters. Try removing one to see more
+            results.
+          </Text>
         }
         contentContainerStyle={styles.listContent}
       />
@@ -375,6 +492,64 @@ const styles = StyleSheet.create({
     fontSize: theme.typography.sizes.xs,
     color: '#166534',
     textAlign: 'center',
+  },
+  revertHint: {
+    backgroundColor: 'rgba(255, 255, 255, 0.04)',
+    borderRadius: theme.borderRadius.sm,
+    padding: theme.spacing.sm,
+    marginTop: theme.spacing.sm,
+  },
+  revertHintCaution: {
+    backgroundColor: 'rgba(255, 68, 68, 0.12)',
+  },
+  revertHintText: {
+    fontSize: theme.typography.sizes.xs,
+    color: theme.colors.textSecondary,
+    textAlign: 'center',
+  },
+  revertHintTextCaution: {
+    color: theme.colors.error,
+  },
+  chipGroupLabel: {
+    fontSize: theme.typography.sizes.xs,
+    fontWeight: theme.typography.weights.medium,
+    color: theme.colors.textSecondary,
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+    marginTop: theme.spacing.lg,
+    marginBottom: theme.spacing.sm,
+  },
+  chipRow: {
+    flexDirection: 'row',
+    gap: theme.spacing.sm,
+    paddingRight: theme.spacing.lg,
+  },
+  chip: {
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    borderRadius: theme.borderRadius.full,
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: theme.spacing.xs + 2,
+  },
+  chipActive: {
+    backgroundColor: theme.colors.primary,
+    borderColor: theme.colors.primary,
+  },
+  chipText: {
+    fontSize: theme.typography.sizes.sm,
+    color: theme.colors.text,
+  },
+  chipTextActive: {
+    color: '#FFFFFF',
+    fontWeight: theme.typography.weights.semibold,
+  },
+  noFilterMatch: {
+    fontSize: theme.typography.sizes.sm,
+    color: theme.colors.textSecondary,
+    textAlign: 'center',
+    paddingHorizontal: theme.spacing.lg,
+    paddingVertical: theme.spacing.xl,
+    lineHeight: 20,
   },
   applyButton: {
     backgroundColor: theme.colors.primary,
