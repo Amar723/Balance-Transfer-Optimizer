@@ -12,6 +12,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { theme } from '../theme';
 import { offers } from '../data/balanceTransferOffers';
 import { calculateSavings, SavingsResult } from '../utils/CalculateSavings';
+import BankLogo from '../components/BankLogo';
 import SavingsChart from '../components/SavingsChart';
 
 export default function ResultsScreen({ route, navigation }: any) {
@@ -61,9 +62,12 @@ export default function ResultsScreen({ route, navigation }: any) {
       )}
 
       <View style={styles.cardHeader}>
-        <View>
-          <Text style={styles.bankName}>{item.offer.bank}</Text>
-          <Text style={styles.cardName}>{item.offer.cardName}</Text>
+        <View style={styles.cardTitleRow}>
+          <BankLogo bank={item.offer.bank} />
+          <View style={styles.cardTitleText}>
+            <Text style={styles.bankName}>{item.offer.bank}</Text>
+            <Text style={styles.cardName}>{item.offer.cardName}</Text>
+          </View>
         </View>
         <View style={styles.savingsContainer}>
           <Text style={styles.savingsAmount}>
@@ -306,6 +310,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
+  },
+  cardTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+    marginRight: theme.spacing.md,
+  },
+  cardTitleText: {
+    flex: 1,
+    marginLeft: theme.spacing.sm,
   },
   bankName: {
     fontSize: theme.typography.sizes.lg,

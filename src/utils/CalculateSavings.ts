@@ -28,6 +28,11 @@ export function isCurrentCard(
 ): boolean {
   if (!currentCard || currentCard === 'Other') return false;
   const normalised = currentCard.toLowerCase();
+  const bankName = offer.bank.toLowerCase();
+
+  // Same-bank transfers are typically not allowed (picker labels start with bank name).
+  if (normalised.startsWith(bankName)) return true;
+
   const offerName = offer.cardName.toLowerCase();
   return offerName === normalised || offerName.includes(normalised);
 }
