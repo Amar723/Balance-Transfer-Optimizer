@@ -3,21 +3,28 @@ import { BalanceTransferOffer } from '../data/balanceTransferOffers';
 export interface SavingsResult {
   offer: BalanceTransferOffer;
   transferFee: number;
+  // Gross interest delta during the promo window (current rate minus promo rate).
   interestSavedVsCurrent: number;
+  // Interest accrued on the new card during the promo window (non-zero for
+  // offers that aren't truly 0%).
+  interestOnTransferCard: number;
+  // Transfer fee + annual fees charged during the promo window.
+  totalFees: number;
+  // Net savings after fees and any promo-rate interest.
   totalSavings: number;
   monthlyPaymentNeeded: number;
   effectiveCost: number;
 }
 
-// Hide offers where the user's debt + transfer fee exceeds the card's
-// minimum credit limit — they couldn't fit their balance on the new card.
+// Hide offers where the user's debt + transfer fee exceeds the maximum
+// balance the offer can absorb — they couldn't fit their balance on the new card.
 export function isOfferEligible(
   debtAmount: number,
   offer: BalanceTransferOffer,
 ): boolean {
-  const transferFee = debtAmount * (offer.transferFeePercent / 100);
+  const transferFee = debtAmount * ((offer.transferFeePercent ?? 0) / 100);
   const amountNeeded = debtAmount + transferFee;
-  return amountNeeded <= offer.minCreditLimit;
+  return amountNeeded <= offer.maxBalanceTransfer;
 }
 
 // Most balance transfer providers don't let you transfer between their own
@@ -48,36 +55,40 @@ export function calculateSavings(
     .filter((offer) => isOfferEligible(debtAmount, offer))
     .filter((offer) => !isCurrentCard(offer, currentCard));
 
-  // map over the offers and calculate the savings for each offer
   const results: SavingsResult[] = eligibleOffers.map((offer) => {
-    // calculate the interest you'd pay staying on current card over the promo period
-    // Interest you'd pay staying on current card over the promo period
-    const months = offer.interestFreeMonths;
-    const monthlyRate = currentInterestRate / 100 / 12;
-    const interestOnCurrentCard = debtAmount * monthlyRate * months;
+    const months = offer.interestFreeMonths ?? 0;
+    const currentMonthlyRate = currentInterestRate / 100 / 12;
+    const promoMonthlyRate = offer.balanceTransferRate / 100 / 12;
 
-    // one-off transfer fee
-    const transferFee = debtAmount * (offer.transferFeePercent / 100);
+    const interestOnCurrentCard = debtAmount * currentMonthlyRate * months;
+    const interestOnTransferCard = debtAmount * promoMonthlyRate * months;
+    const interestSavedVsCurrent = interestOnCurrentCard - interestOnTransferCard;
 
-    // net savings = interest avoided minus transfer fee minus annual fee
-    const totalSavings = interestOnCurrentCard - transferFee - offer.annualFee;
+    const transferFee = debtAmount * ((offer.transferFeePercent ?? 0) / 100);
 
-    // monthly payment needed to clear debt within promo period
-    const monthlyPaymentNeeded = (debtAmount + transferFee) / months;
+    // Charge year-two annual fee when the promo runs beyond 12 months, falling
+    // back to the standard annual fee if no post-intro rate is specified.
+    const yearOneFee = offer.annualFee;
+    const yearTwoFee =
+      months > 12 ? (offer.annualFeeAfterFirstYear ?? offer.annualFee) : 0;
+    const totalFees = transferFee + yearOneFee + yearTwoFee;
 
-    // effective cost of this offer
-    const effectiveCost = transferFee + offer.annualFee;
+    const totalSavings = interestSavedVsCurrent - totalFees;
+
+    const monthlyPaymentNeeded =
+      months > 0 ? (debtAmount + transferFee) / months : 0;
 
     return {
-      offer, // the offer that was used to calculate the savings
-      transferFee, // the transfer fee for the offer
-      interestSavedVsCurrent: interestOnCurrentCard, // the interest saved vs the current card
-      totalSavings, // the total savings for the offer
-      monthlyPaymentNeeded, // the monthly payment needed to clear debt within promo period
-      effectiveCost, // the effective cost of this offer
+      offer,
+      transferFee,
+      interestSavedVsCurrent,
+      interestOnTransferCard,
+      totalFees,
+      totalSavings,
+      monthlyPaymentNeeded,
+      effectiveCost: totalFees,
     };
   });
 
-  // rank by total savings, highest first
   return results.sort((a, b) => b.totalSavings - a.totalSavings);
 }

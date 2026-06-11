@@ -13,7 +13,10 @@ export type BalanceTransferCard = {
   annualFee: number;
   annualFeeAfterFirstYear?: number;
   purchaseRate: number | null;
+  // Floor on approval, kept for reference only.
   minCreditLimit: number | null;
+  // Maximum balance (including transfer fee) this offer can absorb. Used for matching.
+  maxBalanceTransfer: number;
   cardType: 'Visa' | 'Mastercard' | 'American Express' | 'Unknown';
   category: string;
   perks: string[];
@@ -35,6 +38,7 @@ export const balanceTransferCards: BalanceTransferCard[] = [
     annualFeeAfterFirstYear: 58,
     purchaseRate: 21.99,
     minCreditLimit: 1000,
+    maxBalanceTransfer: 15000,
     cardType: 'Visa',
     category: 'Balance Transfer',
     perks: ['Longest 0% balance transfer period', '$0 annual fee in first year'],
@@ -53,6 +57,7 @@ export const balanceTransferCards: BalanceTransferCard[] = [
     annualFee: 149,
     purchaseRate: 21.99,
     minCreditLimit: 6000,
+    maxBalanceTransfer: 30000,
     cardType: 'Visa',
     category: 'Balance Transfer',
     perks: ['0% p.a. balance transfer offer', 'Premium card features'],
@@ -71,6 +76,7 @@ export const balanceTransferCards: BalanceTransferCard[] = [
     annualFee: 149,
     purchaseRate: 21.99,
     minCreditLimit: 6000,
+    maxBalanceTransfer: 30000,
     cardType: 'Visa',
     category: 'Rewards',
     perks: ['0% p.a. for 12 months', 'Rewards points on eligible spend'],
@@ -90,6 +96,7 @@ export const balanceTransferCards: BalanceTransferCard[] = [
     annualFee: 36,
     purchaseRate: 21.99,
     minCreditLimit: 500,
+    maxBalanceTransfer: 15000,
     cardType: 'Mastercard',
     category: 'Low Fee',
     perks: ['Low annual fee', '0% p.a. balance transfer offer'],
@@ -108,6 +115,7 @@ export const balanceTransferCards: BalanceTransferCard[] = [
     annualFee: 228,
     purchaseRate: 21.99,
     minCreditLimit: 1000,
+    maxBalanceTransfer: 15000,
     cardType: 'Mastercard',
     category: 'Rewards',
     perks: ['Rewards points', '0% p.a. balance transfer period'],
@@ -126,6 +134,7 @@ export const balanceTransferCards: BalanceTransferCard[] = [
     annualFee: 0,
     purchaseRate: 19.99,
     minCreditLimit: 500,
+    maxBalanceTransfer: 15000,
     cardType: 'Mastercard',
     category: 'Low Fee',
     perks: ['No annual fee', 'Lower balance transfer fee'],
@@ -145,6 +154,7 @@ export const balanceTransferCards: BalanceTransferCard[] = [
     annualFee: 48,
     purchaseRate: 19.99,
     minCreditLimit: 1000,
+    maxBalanceTransfer: 15000,
     cardType: 'Visa',
     category: 'Low Rate',
     perks: ['0% p.a. for 12 months', 'Lower transfer fee'],
@@ -163,6 +173,7 @@ export const balanceTransferCards: BalanceTransferCard[] = [
     annualFee: 48,
     purchaseRate: 14.99,
     minCreditLimit: 1000,
+    maxBalanceTransfer: 15000,
     cardType: 'Visa',
     category: 'Low Rate',
     perks: ['Low revert rate', 'Lower transfer fee'],
@@ -181,6 +192,7 @@ export const balanceTransferCards: BalanceTransferCard[] = [
     annualFee: 149,
     purchaseRate: 21.99,
     minCreditLimit: 6000,
+    maxBalanceTransfer: 30000,
     cardType: 'Visa',
     category: 'Rewards',
     perks: ['Rewards features', 'Short 0% transfer period'],
@@ -200,6 +212,7 @@ export const balanceTransferCards: BalanceTransferCard[] = [
     annualFee: 0,
     purchaseRate: 17.99,
     minCreditLimit: 500,
+    maxBalanceTransfer: 15000,
     cardType: 'Mastercard',
     category: 'Balance Transfer',
     perks: ['No annual fee', 'No transfer fee', 'Simple repayment structure'],
@@ -218,6 +231,7 @@ export const balanceTransferCards: BalanceTransferCard[] = [
     annualFee: 59,
     purchaseRate: 19.99,
     minCreditLimit: 1000,
+    maxBalanceTransfer: 15000,
     cardType: 'Mastercard',
     category: 'Balance Transfer',
     perks: ['Longer interest-free period', 'Simple digital application'],
@@ -236,6 +250,7 @@ export const balanceTransferCards: BalanceTransferCard[] = [
     annualFee: 39,
     purchaseRate: 12.99,
     minCreditLimit: 1000,
+    maxBalanceTransfer: 15000,
     cardType: 'Mastercard',
     category: 'Low Rate',
     perks: ['Low revert rate', 'Low transfer fee'],
@@ -247,5 +262,15 @@ export const balanceTransferCards: BalanceTransferCard[] = [
 
 export type BalanceTransferOffer = BalanceTransferCard;
 export const offers = balanceTransferCards;
+
+// Shown in the InputScreen card picker. Bank-level labels so isCurrentCard
+// can exclude every card from the same provider.
+export const CURRENT_CARD_OPTIONS = [
+  'ANZ',
+  'CommBank',
+  'ING',
+  'Unloan',
+  'Other',
+] as const;
 
 export default balanceTransferCards;
