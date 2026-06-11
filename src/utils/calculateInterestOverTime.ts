@@ -42,29 +42,36 @@ function pickSampleMonths(totalMonths: number, maxPoints = 6): number[] {
  * Assumptions are intentionally aligned with `calculateSavings` so the chart
  * and the headline savings number tell the same story:
  *  - Balance is held constant over the promo window (no principal payments).
- *  - Transfer fee + annual fee are charged upfront on the new card.
- *  - No interest accrues on the new card during the 0% promo period.
+ *  - Transfer fee + year-one annual fee are charged upfront on the new card.
+ *  - Year-two annual fee (if any) is charged at month 12 when the promo runs longer.
+ *  - Interest may accrue on the new card at `balanceTransferRate` (zero for true 0% offers).
  */
 export function calculateInterestOverTime(
   debtAmount: number,
   currentInterestRate: number,
   offer: BalanceTransferOffer,
 ): InterestOverTimeResult {
-  const months = offer.interestFreeMonths;
-  const monthlyRate = currentInterestRate / 100 / 12;
+  const months = offer.interestFreeMonths ?? 0;
+  const currentMonthlyRate = currentInterestRate / 100 / 12;
+  const promoMonthlyRate = offer.balanceTransferRate / 100 / 12;
 
-  const transferUpfrontCost =
-    debtAmount * (offer.transferFeePercent / 100) + offer.annualFee;
+  const transferFee = debtAmount * ((offer.transferFeePercent ?? 0) / 100);
+  const upfrontCost = transferFee + offer.annualFee;
+  const yearTwoFee =
+    months > 12 ? (offer.annualFeeAfterFirstYear ?? offer.annualFee) : 0;
 
   const sampleMonths = pickSampleMonths(months);
 
   const labels = sampleMonths.map(String);
   const withoutTransfer = sampleMonths.map(
-    (m) => debtAmount * monthlyRate * m,
+    (m) => debtAmount * currentMonthlyRate * m,
   );
-  const withTransfer = sampleMonths.map((m) =>
-    m === 0 ? 0 : transferUpfrontCost,
-  );
+  const withTransfer = sampleMonths.map((m) => {
+    if (m === 0) return 0;
+    const promoInterest = debtAmount * promoMonthlyRate * m;
+    const annualFeesSoFar = m >= 12 ? offer.annualFee + yearTwoFee : offer.annualFee;
+    return transferFee + annualFeesSoFar + promoInterest;
+  });
 
   let crossoverMonth: number | null = null;
   for (let i = 0; i < sampleMonths.length; i++) {
