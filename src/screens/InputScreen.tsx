@@ -21,6 +21,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 import { theme } from '../theme';
 import type { RootStackParamList } from '../navigation/types';
+import { CURRENT_CARD_OPTIONS } from '../data/balanceTransferOffers';
 
 // Domain constants - single source of truth
 
@@ -28,16 +29,6 @@ const BALANCE_TRANSFER_LIMITS = {
   MAX_DEBT_AUD: 100_000,
   MAX_INTEREST_RATE_PCT: 30,
 } as const;
-
-const COMMON_CARDS: readonly string[] = [
-  'ANZ Low Rate',
-  'CommBank Low Rate',
-  'NAB Low Rate',
-  'Westpac Low Rate',
-  'Citi Clear',
-  'Bankwest Breeze Platinum',
-  'Other',
-];
 
 // Validation
 export interface FormErrors {
@@ -248,7 +239,7 @@ export default function InputScreen({ navigation }: Props) {
 
               {showCardPicker && (
                 <View style={styles.dropdown}>
-                  {COMMON_CARDS.map((card) => (
+                  {CURRENT_CARD_OPTIONS.map((card) => (
                     <TouchableOpacity
                       key={card}
                       style={styles.dropdownItem}
@@ -267,6 +258,15 @@ export default function InputScreen({ navigation }: Props) {
               The average Australian carries $3,200 in credit card debt at ~20% interest — that's
               $640/year in unnecessary interest charges.
             </Text>
+
+            <TouchableOpacity
+              onPress={() => navigation.navigate('Learn')}
+              accessibilityRole="link"
+              accessibilityLabel="Learn how balance transfers work"
+              style={styles.learnLink}
+            >
+              <Text style={styles.learnLinkText}>How balance transfers work →</Text>
+            </TouchableOpacity>
           </View>
 
           <View style={styles.footer}>
@@ -465,6 +465,15 @@ const styles = StyleSheet.create({
     color: theme.colors.textSecondary,
     lineHeight: 20,
     marginTop: theme.spacing.sm,
+  },
+  learnLink: {
+    marginTop: theme.spacing.md,
+    alignSelf: 'flex-start',
+  },
+  learnLinkText: {
+    fontSize: theme.typography.sizes.sm,
+    color: theme.colors.primary,
+    fontWeight: theme.typography.weights.medium,
   },
 
   footer: {
