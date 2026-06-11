@@ -35,7 +35,7 @@ const COMMON_CARDS: readonly string[] = [
   'NAB Low Rate',
   'Westpac Low Rate',
   'Citi Clear',
-  'Bankwest Breeze',
+  'Bankwest Breeze Platinum',
   'Other',
 ];
 

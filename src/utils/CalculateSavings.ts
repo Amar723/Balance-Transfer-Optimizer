@@ -9,14 +9,42 @@ export interface SavingsResult {
   effectiveCost: number;
 }
 
+// Hide offers where the user's debt + transfer fee exceeds the card's
+// minimum credit limit — they couldn't fit their balance on the new card.
+export function isOfferEligible(
+  debtAmount: number,
+  offer: BalanceTransferOffer,
+): boolean {
+  const transferFee = debtAmount * (offer.transferFeePercent / 100);
+  const amountNeeded = debtAmount + transferFee;
+  return amountNeeded <= offer.minCreditLimit;
+}
+
+// Most balance transfer providers don't let you transfer between their own
+// cards, so hide the offer that matches the user's current card.
+export function isCurrentCard(
+  offer: BalanceTransferOffer,
+  currentCard?: string,
+): boolean {
+  if (!currentCard || currentCard === 'Other') return false;
+  const normalised = currentCard.toLowerCase();
+  const offerName = offer.cardName.toLowerCase();
+  return offerName === normalised || offerName.includes(normalised);
+}
+
 // Function is used to calculate the savings for a given debt amount, current interest rate and offers
 export function calculateSavings(
   debtAmount: number,
   currentInterestRate: number,
-  offers: BalanceTransferOffer[]
+  offers: BalanceTransferOffer[],
+  currentCard?: string,
 ): SavingsResult[] {
+  const eligibleOffers = offers
+    .filter((offer) => isOfferEligible(debtAmount, offer))
+    .filter((offer) => !isCurrentCard(offer, currentCard));
+
   // map over the offers and calculate the savings for each offer
-  const results: SavingsResult[] = offers.map((offer) => {
+  const results: SavingsResult[] = eligibleOffers.map((offer) => {
     // calculate the interest you'd pay staying on current card over the promo period
     // Interest you'd pay staying on current card over the promo period
     const months = offer.interestFreeMonths;
