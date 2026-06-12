@@ -107,14 +107,6 @@ This is a **prototype**, not financial advice.
 - **No approval modelling** — Does not check credit score, income, or new-customer eligibility.
 - **Estimates only** — Actual savings depend on spending behaviour, payment timing, and offer terms at application time.
 
-## Demo
-
-<!-- Replace with your screen recording link before submission -->
-
-_Add a link to your screen recording here._
-
-Suggested walkthrough: enter $5,000 at 20% → review ranked results → try sort/filter → open Learn screen → tap Apply on top offer.
-
 ## Author
 
 Amarprit Singh — [Amar723](https://github.com/Amar723)
