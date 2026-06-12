@@ -254,11 +254,6 @@ export default function InputScreen({ navigation }: Props) {
               )}
             </View>
 
-            <Text style={styles.disclaimer}>
-              The average Australian carries $3,200 in credit card debt at ~20% interest — that's
-              $640/year in unnecessary interest charges.
-            </Text>
-
             <TouchableOpacity
               onPress={() => navigation.navigate('Learn')}
               accessibilityRole="link"
